@@ -200,6 +200,7 @@ export function runMatch(rows: RawRow[], settings: MatchSettings = DEFAULT_SETTI
   const qualifying: Candidate[] = [];
   const nearMisses: NearMiss[] = [];
   const notChosen: NotChosenFlat[] = [];
+  const multiBreak: { address: string; foundBy: string; broken: string[] }[] = [];
 
   for (const c of candidates) {
     const broken = brokenRules(c.inputs, settings);
@@ -218,6 +219,7 @@ export function runMatch(rows: RawRow[], settings: MatchSettings = DEFAULT_SETTI
         foundBy: c.foundBy,
         why: `Doesn't meet ${broken.length} requirements: ${broken.join("; ")}`,
       });
+      multiBreak.push({ address: c.address, foundBy: c.foundBy, broken });
     }
   }
 
@@ -229,6 +231,9 @@ export function runMatch(rows: RawRow[], settings: MatchSettings = DEFAULT_SETTI
       return da - db;
     })[0];
     relaxHint = `Relaxing "${closest.brokenRule}" would let ${closest.address} qualify.`;
+  } else if (qualifying.length < 3 && multiBreak.length > 0) {
+    const closest = [...multiBreak].sort((a, b) => a.broken.length - b.broken.length)[0];
+    relaxHint = `No flat breaks just one rule at these settings. ${closest.address} comes closest, breaking ${closest.broken.length}: ${closest.broken.join("; ")}. Try relaxing more than one limit.`;
   }
 
   if (qualifying.length === 0) {
