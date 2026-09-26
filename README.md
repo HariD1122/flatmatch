@@ -1,36 +1,50 @@
-This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
+# FlatMatch
 
-## Getting Started
+Three friends are flat-hunting together. FlatMatch reads the latest "House Hunt"
+Google Form responses, applies the group's must-have requirements, and shows the
+top 3 addresses with a friendly reason and the trade-offs for each person. It
+doesn't decide for you — it gives you options to discuss.
 
-First, run the development server:
+Live app: https://flatmatch-delta.vercel.app
+
+## Stack
+
+- Next.js (App Router) + TypeScript
+- Tailwind CSS
+- Gemini API for one-line reasons and a results-only chatbot
+- Data source: a published Google Sheet CSV (linked from the Google Form), with a
+  bundled sample dataset as a fallback
+
+## Local development
 
 ```bash
+npm install
 npm run dev
-# or
-yarn dev
-# or
-pnpm dev
-# or
-bun dev
 ```
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+Copy `.env.example` to `.env.local` and fill in:
 
-You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
+- `GEMINI_API_KEY` — server-side only, never exposed to the browser
+- `GEMINI_MODEL` — defaults to `gemini-3.8-flash` if unset
+- `SHEET_CSV_URL` — the published CSV link for the House Hunt responses sheet;
+  leave empty to use the bundled sample data
 
-This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
+## How matching works
 
-## Learn More
+1. **Data check** — rows with an implausible rent (below ₹5,000) or missing
+   fields are flagged as "needs checking" and excluded from ranking.
+2. **Must-have filter** — flats are removed if they fail a required rule (lift
+   or ground floor, max distance to Hinjewadi, max distance to the gym). Flats
+   that break exactly one rule are shown separately as "near misses".
+3. **Scoring (0–100)** — 35% closeness to Hinjewadi, 35% closeness to the gym,
+   15% rent (cheaper is better), 15% extras (parking, pet-friendly, 3+
+   bathrooms, closeness to family).
+4. **Ranking** — highest score wins; ties are broken by whichever flat makes
+   the least-satisfied person happiest, then by lower rent.
+5. **Output** — top 3 addresses, each with a reason, per-person trade-offs, and
+   the full set of inputs used.
 
-To learn more about Next.js, take a look at the following resources:
+## Deployment
 
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
-
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
-
-## Deploy on Vercel
-
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
-
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
+Pushes to `main` auto-deploy to Vercel production via the connected GitHub
+repository.
